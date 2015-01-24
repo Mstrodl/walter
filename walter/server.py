@@ -4,7 +4,7 @@ import socket, time, thread, sys, hashlib
 from ast import literal_eval
 from wcr2 import *
 
-VERSION = '0.0.1.1'
+VERSION = '0.0.1.2'
 AUTHOR = 'Lukas Mendes'
 PORT = 39
 BUFSIZE = 4096
@@ -54,12 +54,13 @@ def conectado(sock, cli, spwd, skey, epwd, crypt_obj):
 
 def mainloop():
 	print 'Walter Server v'+VERSION+" by "+AUTHOR
+	HOST = raw_input("Server hosting IP: ")
 	s_passwd = raw_input("Server Password(without ; character): ")
 	e_passwd = raw_input("Encryption Password(without ; character): ")
 	w = WCR(2048)
 	s_key = w.export()
 	tcp = socket.socket()
-	tcp.bind((socket.gethostbyname('localhost'), PORT))
+	tcp.bind((HOST, PORT))
 	tcp.listen(15)
 	print 'Listening for Walter Clients in IP', socket.gethostbyname('localhost'), '...'
 	while True:
