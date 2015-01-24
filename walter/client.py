@@ -3,7 +3,7 @@ import sys, socket, time, thread, hashlib
 
 from wcr2 import *
 
-VERSION = '0.0.1'
+VERSION = '0.0.1.1'
 AUTHOR = 'Lukas Mendes'
 PORT = 39
 BUFSIZE = 4096
@@ -29,9 +29,11 @@ def main():
 	nick = raw_input('User nick: ')
 	tcp.connect(CONN)
 	tcp.send(hashlib.md5(trypwd).hexdigest())
-	print tcp.recv(BUFSIZE)
-	key = tcp.recv(BUFSIZE)
-	epwd = tcp.recv(BUFSIZE)
+	H = tcp.recv(BUFSIZE)
+	h = H.split(';')
+	print h[0]
+	key = h[1]
+	epwd = h[2]
 	w = WCR(2048)
 	w.import_base64(key)
 	thread.start_new_thread(receber_msg, tuple([nick, tcp, w, epwd]))

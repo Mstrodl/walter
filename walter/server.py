@@ -4,7 +4,7 @@ import socket, time, thread, sys, hashlib
 from ast import literal_eval
 from wcr2 import *
 
-VERSION = '0.0.1'
+VERSION = '0.0.1.1'
 AUTHOR = 'Lukas Mendes'
 PORT = 39
 BUFSIZE = 4096
@@ -28,10 +28,8 @@ def conectado(sock, cli, spwd, skey, epwd, crypt_obj):
 	trypass = sock.recv(BUFSIZE)
 	if trypass == hashlib.md5(spwd).hexdigest(): #acertou
 		print '@@@esse pau no cu acertou', cli
-		sock.send("acertou seu bosta")
-		sock.send(skey)
+		sock.send("acertou seu bosta" + ';' + skey + ';' + epwd)
 		print '@@@chave enviada para', cli
-		sock.send(epwd)
 		#print '@@@senha de criptografia enviada para', cli
 		while True:
 			recieved_message = sock.recv(BUFSIZE)
@@ -56,8 +54,8 @@ def conectado(sock, cli, spwd, skey, epwd, crypt_obj):
 
 def mainloop():
 	print 'Walter Server v'+VERSION+" by "+AUTHOR
-	s_passwd = raw_input("Server Password: ")
-	e_passwd = raw_input("Encryption Password: ")
+	s_passwd = raw_input("Server Password(without ; character): ")
+	e_passwd = raw_input("Encryption Password(without ; character): ")
 	w = WCR(2048)
 	s_key = w.export()
 	tcp = socket.socket()
