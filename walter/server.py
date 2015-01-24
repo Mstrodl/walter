@@ -4,7 +4,7 @@ import socket, time, thread, sys, hashlib
 from ast import literal_eval
 from wcr2 import *
 
-VERSION = '0.0.1.3'
+VERSION = '0.0.1.4'
 AUTHOR = 'Lukas Mendes'
 PORT = 39
 BUFSIZE = 4096
