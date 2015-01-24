@@ -3,7 +3,7 @@ import sys, socket, time, thread, hashlib
 
 from wcr2 import *
 
-VERSION = '0.0.1.2'
+VERSION = '0.0.1.3'
 AUTHOR = 'Lukas Mendes'
 PORT = 39
 BUFSIZE = 4096
