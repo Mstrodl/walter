@@ -19,23 +19,29 @@ def broadcast_all(start_socket, message):
         if s == start_socket:
             pass
         else:
-            printout('\n broadcasting: '+repr(s)+'\n')
-            s.send(message)
+			try:
+				printout('\n broadcasting: '+repr(s)+'\n')
+				s.send(message)
+			except:
+				printout("\n error: "+repr(s)+'\n')
+				try: s.close()
+				except: pass
+				sockets.remove(s)
 
 def conectado(sock, cli, spwd, skey, epwd, crypt_obj):
 	print 'thread iniciado:', cli, 'com socket:', repr(sock)
 	sockets.append(sock)
 	trypass = sock.recv(BUFSIZE)
 	if trypass == hashlib.md5(spwd).hexdigest(): #acertou
-		print '@@@esse pau no cu acertou', cli
-		sock.send("acertou seu bosta" + ';' + skey + ';' + epwd)
-		print '@@@chave enviada para', cli
+		print '@@@acertou', cli
+		sock.send("senha aceita" + ';' + skey + ';' + epwd)
+		print '@@@chave enviada:', cli
 		#print '@@@senha de criptografia enviada para', cli
 		while True:
 			recieved_message = sock.recv(BUFSIZE)
 			#print 'recebido:', recieved_message
 			if recieved_message == '1CLOSE':
-				print 'closing connection with', repr(sock)
+				print 'closing:', repr(sock)
 				break
 			e = literal_eval(recieved_message)
 			print 'literal_eval:', e
@@ -47,7 +53,7 @@ def conectado(sock, cli, spwd, skey, epwd, crypt_obj):
 	else:
 		sockets.remove(sock)
 		print 'ERR trolado pela senha', cli
-		sock.send("vc errou seu pau no cu") #xinga fortemente o cara que errou a senha
+		sock.send("senha errada, seu merda.") #xinga fortemente o cara que errou a senha
 		sock.close()
 	print '###exiting of thread###:', cli
 	thread.exit()
