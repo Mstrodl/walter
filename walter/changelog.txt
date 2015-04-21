@@ -1,0 +1,7 @@
+0.0.1 to 0.2 [OBRIGATORY]
+	DIFFIE-(HELL)[MANS] IN WALTER(the secret is now the encryp. password)!
+		-> because of that encryption passwors are now useless
+		-> END-TO-END encryption
+			-Walter server generates a new password for each new client
+			-not using a defined password by the server operator
+		-> SHA256 is used instead of MD5 to hash passwords

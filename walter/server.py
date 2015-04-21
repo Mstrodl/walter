@@ -1,83 +1,158 @@
-#coding: utf-8
-import socket, time, thread, sys, hashlib
+# -*- coding: utf-8 -*-
+# server.py - Walter Server
+import socket
+import time
+import thread
+import sys
+import hashlib
+import ast
 
-from ast import literal_eval
-from wcr2 import *
+import diffie as dh
+import error
 
-VERSION = '0.0.1.5'
+from wcr2 import WCR
+
+# coisa q tenho q faze
+# log no servidor
+
+VERSION = '0.2'
 AUTHOR = 'Lukas Mendes'
 PORT = 39
 BUFSIZE = 4096
 
 sockets = []
+secrets = {}
+nicks = {}
+
+def passwordHash(x):
+    return hashlib.sha256(x).hexdigest()
 
 def printout(msg):
-	sys.stdout.write(msg); sys.stdout.flush()
+    sys.stdout.write(msg); sys.stdout.flush()
+
+def socksend(sock, message):
+    try:
+        sock.send(message)
+    except socket.error as e:
+        error.err('SocketError', e.message)
 
 def broadcast_all(start_socket, message):
     for s in sockets:
         if s == start_socket:
             pass
         else:
-			try:
-				printout('\n broadcasting: '+repr(s)+'\n')
-				s.send(message)
-			except:
-				printout("\n error: "+repr(s)+'\n')
-				try: s.close()
-				except: pass
-				sockets.remove(s)
+            try:
+                printout('\n broadcasting: %s\n' % repr(s))
+                socksend(s, message)
+            except:
+                printout("\n error: %s\n" % repr(s))
+                try: s.close()
+                except: pass
+                sockets.remove(s)
 
-def conectado(sock, cli, spwd, skey, epwd, crypt_obj):
-	print 'thread iniciado:', cli, 'com socket:', repr(sock)
-	sockets.append(sock)
-	trypass = sock.recv(BUFSIZE)
-	if trypass == hashlib.md5(spwd).hexdigest(): #acertou
-		print '@@@acertou', cli
-		sock.send("senha aceita" + ';' + skey + ';' + epwd)
-		print '@@@chave enviada:', cli
-		#print '@@@senha de criptografia enviada para', cli
-		while True:
-			recieved_message = sock.recv(BUFSIZE)
-			#print 'recebido:', recieved_message
-			if recieved_message == '1CLOSE':
-				print 'closing:', repr(sock)
-				break
-			e = literal_eval(recieved_message)
-			print 'literal_eval:', e
-			print '\t!!!message!!!:', crypt_obj.decrypt(e[0], epwd, e[1])
-			broadcast_all(sock, recieved_message)
-		print '!!!fechado!!:', cli
-		sockets.remove(sock)
-		sock.close()
-	else:
-		sockets.remove(sock)
-		print 'ERR trolado pela senha', cli
-		sock.send("senha errada, seu merda.") #xinga fortemente o cara que errou a senha
-		sock.close()
-	print '###exiting of thread###:', cli
-	thread.exit()
+def broadcast_encryp(sock, m, crypt_obj):
+    global secrets
+    global sockets
+    for s in sockets:
+        if s == sock:
+            continue
+        ssecret = secrets[hash(s)]
+        new_message = crypt_obj.encrypt(m, ssecret)
+        socksend(s, str(new_message))
 
-def mainloop():
-	print 'Walter Server v'+VERSION+" by "+AUTHOR
-	argv = sys.argv
-	if len(argv) != 4:
-		print 'usage: [sudo] python server.py HOST s_passwd e_passwd'
-		sys.exit(1)
-	#HOST = raw_input("Server hosting IP: ")
-	#s_passwd = raw_input("Server Password(without ; character): ")
-	#e_passwd = raw_input("Encryption Password(without ; character): ")
-	HOST = argv[1]
-	s_passwd = argv[2]
-	e_passwd = argv[3]
-	w = WCR(2048)
-	s_key = w.export()
-	tcp = socket.socket()
-	tcp.bind((HOST, PORT))
-	tcp.listen(15)
-	print 'Listening for Walter Clients in IP', HOST, '...'
-	while True:
-		con, cliente = tcp.accept()
-		thread.start_new_thread(conectado, tuple([con, cliente, s_passwd, s_key, e_passwd, w]))
+def handle_diffie(sock, client):
+    '''Handles DHKE(Diffie-Hellman Key Exchange)'''
+    gen = dh.get_rand(64)
+    p = dh.get_prime(32)
+    socksend(sock, '?DIFFIE %d %d' % (p, gen))
+    resp = sock.recv(BUFSIZE)
+    if resp == '?YESDIFFIE':
+        b = dh.get_rand(8)
+        PB = dh.g(gen, b, p)
+        socksend(sock, '?PUBLICB %d' % PB)
+        _PA = sock.recv(BUFSIZE)
+        if not _PA.startswith('?PUBLICA'):
+            error.err('DH_NValid_PA', client)
+            return False
+        PA = long(_PA.split()[1])
+        S = dh.g(PA, b, p)
+        return S
+    else:
+        error.err('DH_NValid_YD', client)
+        return False
 
-mainloop()
+def conectado(sock, cli, spwd, skey, crypt_obj):
+    global secrets
+    global sockets
+    global nicks
+    cli = str(cli)
+    print 'thread iniciado: %s' % cli
+    sockets.append(sock)
+    trypass = sock.recv(BUFSIZE)
+    if trypass == passwordHash(spwd): #acertou
+        print '@@@accept %s' % cli
+        secret = handle_diffie(sock, cli[0])
+        if not secret:
+            print '##ERROR NOT SECRET %s' % cli
+            sock.close()
+            thread.exit()
+        socksend(sock, "senha aceita;%s" % skey)
+        secret = str(secret)
+        secrets[hash(sock)] = secret
+        while True:
+            recieved_message = sock.recv(BUFSIZE)
+            if recieved_message == '1CLOSE':
+                cls_msg = '**SERVER**: %s closed connection' % nicks[hash(sock)]
+                broadcast_encryp(sock, cls_msg, crypt_obj)
+                print 'closing: %s' % repr(sock)
+                break
+            # e = ast.literal_eval(recieved_message)
+            # plz dont do this
+            # e = eval(recieved_message, {'secrets': secrets})
+            m = crypt_obj.decrypt(recieved_message, secret)
+            print 'recv from %s: %s' % (cli, repr(recieved_message))
+            print '\tMESSAGE: %s' % m
+            nicks[hash(sock)] = m.split(':')[0]
+            broadcast_encryp(sock, m, crypt_obj)
+        print '!!!fechado!!:', cli
+        sockets.remove(sock)
+        del secrets[hash(sock)]
+        del nicks[hash(sock)]
+        sock.close()
+    else:
+        sockets.remove(sock)
+        print '###wrong_password: %s' % cli
+        socksend(sock, "senha errada, seu merda.") # xinga fortemente o cara que errou a senha
+        sock.close()
+    print '###closing_thread: %s' % cli
+    del sock
+    thread.exit()
+
+def main():
+    print "Walter Server v%s by %s" % (VERSION, AUTHOR)
+    argv = sys.argv
+    default = False
+    if len(argv) == 1 or argv[1] == 'deflt':
+        default = True
+        print 'running default arguments'
+        print 'HOST -> localhost'
+        print 'password -> 123'
+        HOST, s_passwd = 'localhost', '123'
+    if len(argv) != 4 and not default:
+        print 'usage: [sudo] python %s HOST s_passwd' % argv[0]
+        return 1
+    if not default:
+        HOST = argv[1]
+        s_passwd = argv[2]
+    w = WCR(2048)
+    s_key = w.export()
+    tcp = socket.socket()
+    tcp.bind((HOST, PORT))
+    tcp.listen(15)
+    print 'Waiting for clients in %s...' % HOST
+    while True:
+        con, cliente = tcp.accept()
+        thread.start_new_thread(conectado, tuple([con, cliente, s_passwd, s_key, w]))
+
+if __name__ == '__main__':
+    sys.exit(main())
