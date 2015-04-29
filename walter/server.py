@@ -17,6 +17,7 @@ from wcr2 import WCR
 
 VERSION = '0.2'
 AUTHOR = 'Lukas Mendes'
+BANNER = "Walter Server v%s by %s" % (VERSION, AUTHOR)
 PORT = 39
 BUFSIZE = 4096
 
@@ -26,6 +27,11 @@ nicks = {}
 
 def passwordHash(x):
     return hashlib.sha256(x).hexdigest()
+
+def logMessage(msg):
+    logfile = open('logging.log', 'a')
+    logfile.write(time.ctime()+':'+msg+'\n')
+    logfile.close()
 
 def printout(msg):
     sys.stdout.write(msg); sys.stdout.flush()
@@ -105,15 +111,20 @@ def conectado(sock, cli, spwd, skey, crypt_obj):
                 cls_msg = '**SERVER**: %s closed connection' % nicks[hash(sock)]
                 broadcast_encryp(sock, cls_msg, crypt_obj)
                 print 'closing: %s' % repr(sock)
+                logMessage('Client closed : %s' % cli)
                 break
+            elif recieved_message == 'STPING':
+                print 'STPING: %s' % cli
+                socksend(sock, 'RCVPING')
+            else:
+                m = crypt_obj.decrypt(recieved_message, secret)
+                print 'recv from %s: %s' % (cli, repr(recieved_message))
+                print '\tMESSAGE: %s' % m
+                nicks[hash(sock)] = m.split(':')[0]
+                broadcast_encryp(sock, m, crypt_obj)
             # e = ast.literal_eval(recieved_message)
             # plz dont do this
             # e = eval(recieved_message, {'secrets': secrets})
-            m = crypt_obj.decrypt(recieved_message, secret)
-            print 'recv from %s: %s' % (cli, repr(recieved_message))
-            print '\tMESSAGE: %s' % m
-            nicks[hash(sock)] = m.split(':')[0]
-            broadcast_encryp(sock, m, crypt_obj)
         print '!!!fechado!!:', cli
         sockets.remove(sock)
         del secrets[hash(sock)]
@@ -129,7 +140,8 @@ def conectado(sock, cli, spwd, skey, crypt_obj):
     thread.exit()
 
 def main():
-    print "Walter Server v%s by %s" % (VERSION, AUTHOR)
+    print BANNER
+    logMessage("Walter Server v%s started" % VERSION)
     argv = sys.argv
     default = False
     if len(argv) == 1 or argv[1] == 'deflt':
@@ -144,6 +156,7 @@ def main():
     if not default:
         HOST = argv[1]
         s_passwd = argv[2]
+    logMessage('Running server at %s password %s' % (HOST, s_passwd))
     w = WCR(2048)
     s_key = w.export()
     tcp = socket.socket()
@@ -152,6 +165,7 @@ def main():
     print 'Waiting for clients in %s...' % HOST
     while True:
         con, cliente = tcp.accept()
+        logMessage('New client : %s' % cliente[0])
         thread.start_new_thread(conectado, tuple([con, cliente, s_passwd, s_key, w]))
 
 if __name__ == '__main__':
