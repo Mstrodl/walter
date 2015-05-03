@@ -40,7 +40,7 @@ def socksend(sock, message):
     try:
         sock.send(message)
     except socket.error as e:
-        error.err('SocketError', e.message)
+        error.err('SocketError', e.strerror)
 
 def broadcast_all(start_socket, message):
     for s in sockets:
@@ -105,6 +105,7 @@ def conectado(sock, cli, spwd, skey, crypt_obj):
         socksend(sock, "senha aceita;%s" % skey)
         secret = str(secret)
         secrets[hash(sock)] = secret
+        socksend(sock, "**SERVER**: client joined")
         while True:
             recieved_message = sock.recv(BUFSIZE)
             if recieved_message == '1CLOSE':
@@ -150,7 +151,7 @@ def main():
         print 'HOST -> localhost'
         print 'password -> 123'
         HOST, s_passwd = 'localhost', '123'
-    if len(argv) != 4 and not default:
+    if len(argv) != 3 and not default:
         print 'usage: [sudo] python %s HOST s_passwd' % argv[0]
         return 1
     if not default:
