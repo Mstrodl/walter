@@ -16,8 +16,11 @@ VERSION = '0.2'
 AUTHOR = 'Lukas Mendes'
 PORT = 39
 BUFSIZE = 4096
+MSG_MAX = 1024
 
 ping_lock = False
+read_lock = False
+used = False
 
 def passwordHash(x):
     return hashlib.sha256(x).hexdigest()
@@ -25,24 +28,43 @@ def passwordHash(x):
 def printout(msg):
     sys.stdout.write(msg) ; sys.stdout.flush()
 
+def read_message():
+    n = ''
+    n += sys.stdin.read(1)
+    while n[len(n)-1] != '\n':
+        if not read_lock:
+            n += sys.stdin.read(1)
+        else:
+            if not used:
+                used = True
+                printout('%s\n' % n)
+    return n
+
 def socksend(sock, message):
     try:
         sock.send(message)
     except socket.error as e:
-        error.err('SocketError', e.message)
+        error.err('SocketError', e.strerror)
 
 def receber_msg(n, sock, crypt_obj, ep):
     global ping_lock
+    global read_locks
+    global used
     while True:
         recieved = sock.recv(BUFSIZE)
         if recieved == 'RCVPING':
             ping_lock = True
+        elif recieved == '**SERVER**: client joined':
+            printout('%s\n' % recieved)
         else:
             ping_lock = False
+            read_lock = True
             #r = ast.literal_eval(recieved)
             decrypted = crypt_obj.decrypt(recieved, ep)
-            printout('\rmsg: %s\n' % decrypted)
+            printout('\n\rmsg: %s\n' % decrypted)
             printout('%s:msg> ' % n)
+            read_lock = False
+            used = False
     thread.exit()
 
 def main():
@@ -98,7 +120,7 @@ def main():
     print 'Bem-vindo a um servidor do Walter, boas conversas!'
     
     while True:
-        msg = raw_input()
+        msg = read_message().strip()
         if msg.startswith('/'):
             if msg == '/exit': # closing connection
                 socksend(tcp, '1CLOSE')
@@ -112,10 +134,12 @@ def main():
                 time.sleep(1)
                 if ping_lock:
                     t1 = time.time()
+                    ping_lock = False
                 else:
-                    print 'not lock'
+                    print 'ping: not lock'
                 t2 = t1 - t
-                print '%5.2fms' % (t2/1000)
+                print t2
+                print '%3.2fms' % ((t2-1)*1000)
         else:
             r = w.encrypt('%s: %s' % (nick, msg), str(secret))
             socksend(tcp, str(r))
