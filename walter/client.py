@@ -48,7 +48,7 @@ def socksend(sock, message):
 
 def receber_msg(n, sock, crypt_obj, ep):
     global ping_lock
-    global read_locks
+    global read_lock
     global used
     while True:
         recieved = sock.recv(BUFSIZE)
