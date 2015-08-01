@@ -122,7 +122,10 @@ def main():
     while True:
         msg = read_message().strip()
         if msg.startswith('/'):
-            if msg == '/exit': # closing connection
+            if msg == '/help':
+                print '/exit - exits server'
+                print '/ping - pings server'
+            elif msg == '/exit': # closing connection
                 socksend(tcp, '1CLOSE')
                 tcp.close()
                 return 0
