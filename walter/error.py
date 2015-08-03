@@ -33,3 +33,4 @@ def err(err_code, comment=False):
     sys.stderr.write('Error Code: %d\n' % code)
     sys.stderr.write('Error Name: %s\n' % err_code)
     sys.stderr.write('Error COMM: %s\n' % comment)
+

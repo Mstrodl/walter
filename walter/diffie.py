@@ -5,8 +5,6 @@
 import random
 import os
 import time
-import sys
-sys.setrecursionlimit(7000)
 
 PRIME = 127
 
@@ -93,3 +91,4 @@ def test():
     print 'SA =', SA
     print 'SB =', SB
     print 'SA == SB ->', SA == SB
+

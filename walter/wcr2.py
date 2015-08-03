@@ -81,3 +81,4 @@ class WCR:
         '''import a key in base64 format'''
         self.key = base64.b64decode(new_iv)
         self.length = len(self.key)
+
