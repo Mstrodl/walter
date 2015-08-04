@@ -6,13 +6,14 @@ import thread
 import sys
 import hashlib
 import ast
+import platform
 
 import diffie as dh
 import error
 
 from wcr2 import WCR
 
-VERSION = '0.2'
+VERSION = '0.2.1.feelsgoodmate'
 AUTHOR = 'Lukas Mendes'
 PORT = 39
 BUFSIZE = 4096
@@ -22,29 +23,40 @@ ping_lock = False
 read_lock = False
 used = False
 
-def passwordHash(x):
-    return hashlib.sha256(x).hexdigest()
-
-def printout(msg):
-    sys.stdout.write(msg) ; sys.stdout.flush()
-
-def read_message():
-    n = ''
-    n += sys.stdin.read(1)
-    while n[len(n)-1] != '\n':
-        if not read_lock:
-            n += sys.stdin.read(1)
-        else:
-            if not used:
-                used = True
-                printout('%s\n' % n)
-    return n
+def beep_message():
+    if platform.os.name == 'posix':
+        print '\a'
+        time.sleep(0.2)
+    elif platform.os.name == 'windows':
+        winsound.Beep(200, 200)
 
 def socksend(sock, message):
     try:
         sock.send(message)
     except socket.error as e:
         error.err('SocketError', e.strerror)
+
+def passwordHash(x):
+    return hashlib.sha256(x).hexdigest()
+
+def printout(msg):
+    sys.stdout.write(msg) ; sys.stdout.flush()
+
+def read_message(socket):
+    global used
+    n = ''
+    n += sys.stdin.read(1)
+    while n[len(n)-1] != '\n':
+        if not read_lock:
+            try:
+                n += sys.stdin.read(1)
+            except KeyboardInterrupt:
+                socksend(socket, "1CLOSE")
+        else:
+            if not used:
+                used = True
+                printout('%s\n' % n)
+    return n
 
 def receber_msg(n, sock, crypt_obj, ep):
     global ping_lock
@@ -54,6 +66,10 @@ def receber_msg(n, sock, crypt_obj, ep):
         recieved = sock.recv(BUFSIZE)
         if recieved == 'RCVPING':
             ping_lock = True
+        elif recieved == 'SVERR':
+            sys.exit(1)
+        elif recieved[:4] == "MTD^":
+            print 'Server MOTD:', recieved.split('^')[1]
         elif recieved == '**SERVER**: client joined':
             printout('%s\n' % recieved)
         else:
@@ -61,6 +77,7 @@ def receber_msg(n, sock, crypt_obj, ep):
             read_lock = True
             #r = ast.literal_eval(recieved)
             decrypted = crypt_obj.decrypt(recieved, ep)
+            beep_message()
             printout('\n\rmsg: %s\n' % decrypted)
             printout('%s:msg> ' % n)
             read_lock = False
@@ -117,10 +134,10 @@ def main():
     w.import_base64(key)
     thread.start_new_thread(receber_msg, tuple([nick, tcp, w, str(secret)]))
     
-    print 'Bem-vindo a um servidor do Walter, boas conversas!'
+    print 'Welcome to a Walter server!'
     
     while True:
-        msg = read_message().strip()
+        msg = read_message(tcp).strip()
         if msg.startswith('/'):
             if msg == '/help':
                 print '/exit - exits server'
@@ -143,6 +160,13 @@ def main():
                 t2 = t1 - t
                 print t2
                 print '%3.2fms' % ((t2-1)*1000)
+            elif msg[:11] == '/fixmessage':
+                new_motd = msg[12:]
+                print 'setting motd to %s' % new_motd
+                socksend(tcp, 'MOTD^%s' % new_motd)
+                print 'setted.'
+            elif msg == '/message' or msg == '/motd':
+                socksend(tcp, "GETMOTD")
         else:
             r = w.encrypt('%s: %s' % (nick, msg), str(secret))
             socksend(tcp, str(r))

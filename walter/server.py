@@ -12,10 +12,12 @@ import error
 
 from wcr2 import WCR
 
+motd = 'Good Talking!'
+
 # coisa q tenho q faze
 # log no servidor
 
-VERSION = '0.2'
+VERSION = '0.2.1.feelsgoodmate'
 AUTHOR = 'Lukas Mendes'
 BANNER = "Walter Server v%s by %s" % (VERSION, AUTHOR)
 PORT = 39
@@ -91,6 +93,7 @@ def conectado(sock, cli, spwd, skey, crypt_obj):
     global secrets
     global sockets
     global nicks
+    global motd
     cli = str(cli)
     print 'thread iniciado: %s' % cli
     sockets.append(sock)
@@ -117,6 +120,12 @@ def conectado(sock, cli, spwd, skey, crypt_obj):
             elif recieved_message == 'STPING':
                 print 'STPING: %s' % cli
                 socksend(sock, 'RCVPING')
+            elif recieved_message[:4] == 'MOTD':
+                motd = recieved_message.split('^')[1]
+                print '%s: %s' % (recieved_message, cli)
+            elif recieved_message == 'GETMOTD':
+                print 'GETMOTD: %s' % cli
+                socksend(sock, "MTD^%s" % motd)
             else:
                 m = crypt_obj.decrypt(recieved_message, secret)
                 print 'recv from %s: %s' % (cli, repr(recieved_message))
@@ -141,6 +150,7 @@ def conectado(sock, cli, spwd, skey, crypt_obj):
     thread.exit()
 
 def main():
+    global motd
     print BANNER
     logMessage("Walter Server v%s started" % VERSION)
     argv = sys.argv
@@ -150,6 +160,7 @@ def main():
         print 'running default arguments'
         print 'HOST -> localhost'
         print 'password -> 123'
+        print 'motd -> Good talking!'
         HOST, s_passwd = 'localhost', '123'
     if len(argv) != 3 and not default:
         print 'usage: [sudo] python %s HOST s_passwd' % argv[0]
@@ -164,10 +175,19 @@ def main():
     tcp.bind((HOST, PORT))
     tcp.listen(15)
     print 'Waiting for clients in %s...' % HOST
-    while True:
-        con, cliente = tcp.accept()
-        logMessage('New client : %s' % cliente[0])
-        thread.start_new_thread(conectado, tuple([con, cliente, s_passwd, s_key, w]))
+    try:
+        while True:
+            con, cliente = tcp.accept()
+            logMessage('New client : %s' % cliente[0])
+            thread.start_new_thread(conectado, tuple([con, cliente, s_passwd, s_key, w]))
+    except KeyboardInterrupt:
+        print "CTRL-C was pressed, exiting..."
+        for s in sockets:
+            socksend(s, "SVERR")
+            del secrets[hash(s)]
+            del nicks[hash(s)]
+            s.close()
+            sockets.remove(s)
 
 if __name__ == '__main__':
     sys.exit(main())
