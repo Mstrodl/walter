@@ -29,8 +29,8 @@ def err(err_code, comment=False):
             code = 999
     else:
         code = err_code
-    sys.stderr.write('Walter Error!\n')
-    sys.stderr.write('Error Code: %d\n' % code)
-    sys.stderr.write('Error Name: %s\n' % err_code)
-    sys.stderr.write('Error COMM: %s\n' % comment)
+    sys.stderr.write('-- WALTER ERROR! --\n')
+    sys.stderr.write('	Error Code: %d\n' % code)
+    sys.stderr.write('	Error Name: %s\n' % err_code)
+    sys.stderr.write('	Error COMM: %s\n' % comment)
 

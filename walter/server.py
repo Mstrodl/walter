@@ -14,10 +14,9 @@ from wcr2 import WCR
 
 motd = 'Good Talking!'
 
-# coisa q tenho q faze
-# log no servidor
+# TODO: detailed logging
 
-VERSION = '0.2.1.feelsgoodmate'
+VERSION = '0.2.2'
 AUTHOR = 'Lukas Mendes'
 BANNER = "Walter Server v%s by %s" % (VERSION, AUTHOR)
 PORT = 39
@@ -43,20 +42,6 @@ def socksend(sock, message):
         sock.send(message)
     except socket.error as e:
         error.err('SocketError', e.strerror)
-
-def broadcast_all(start_socket, message):
-    for s in sockets:
-        if s == start_socket:
-            pass
-        else:
-            try:
-                printout('\n broadcasting: %s\n' % repr(s))
-                socksend(s, message)
-            except:
-                printout("\n error: %s\n" % repr(s))
-                try: s.close()
-                except: pass
-                sockets.remove(s)
 
 def broadcast_encryp(sock, m, crypt_obj):
     global secrets
@@ -98,7 +83,7 @@ def conectado(sock, cli, spwd, skey, crypt_obj):
     print 'thread iniciado: %s' % cli
     sockets.append(sock)
     trypass = sock.recv(BUFSIZE)
-    if trypass == passwordHash(spwd): #acertou
+    if trypass == passwordHash(spwd): #yay
         print '@@@accept %s' % cli
         secret = handle_diffie(sock, cli[0])
         if not secret:

@@ -13,7 +13,7 @@ import error
 
 from wcr2 import WCR
 
-VERSION = '0.2.1.feelsgoodmate'
+VERSION = '0.2.2'
 AUTHOR = 'Lukas Mendes'
 PORT = 39
 BUFSIZE = 4096
@@ -64,15 +64,15 @@ def receber_msg(n, sock, crypt_obj, ep):
     global used
     while True:
         recieved = sock.recv(BUFSIZE)
-        if recieved == 'RCVPING':
+        if recieved == 'RCVPING': #y know, ping command
             ping_lock = True
-        elif recieved == 'SVERR':
+        elif recieved == 'SVERR': #server error, pls exit
             sys.exit(1)
         elif recieved[:4] == "MTD^":
             print 'Server MOTD:', recieved.split('^')[1]
         elif recieved == '**SERVER**: client joined':
             printout('%s\n' % recieved)
-        else:
+        else: #normal message, decrypt it
             ping_lock = False
             read_lock = True
             #r = ast.literal_eval(recieved)
@@ -89,13 +89,16 @@ def main():
     print "Walter Client v%s by %s" % (VERSION, AUTHOR)
     
     tcp = socket.socket()
-    addr = raw_input('IP do Servidor: ')
+    addr = raw_input('IP do Servidor(padrão: localhost): ')
+    if not addr:
+        addr = 'localhost'
     CONN = (addr, PORT)
     trypwd = raw_input('Senha do Servidor: ')
     nick = raw_input('Nick do Usuário: ')
     
     tcp.connect(CONN)
     socksend(tcp, passwordHash(trypwd))
+
     # handling diffie-hellman
     dh_recep = tcp.recv(BUFSIZE)
     
@@ -106,6 +109,7 @@ def main():
         tcp.close()
         return 1
     
+    #diffie-hellman
     if dh_recep.startswith('?DIFFIE'):
         D = dh_recep.split()
         prime = int(D[1])
@@ -136,18 +140,21 @@ def main():
     
     print 'Welcome to a Walter server!'
     
+    #main client loop
     while True:
         msg = read_message(tcp).strip()
         if msg.startswith('/'):
             if msg == '/help':
                 print '/exit - exits server'
                 print '/ping - pings server'
+                print '/fixmessage - changes MOTD message'
+                print '/message or /motd - shows MOTD message'
             elif msg == '/exit': # closing connection
                 socksend(tcp, '1CLOSE')
                 tcp.close()
                 return 0
             elif msg == '/ping': #pinging to server
-                print 'ping cmd'
+                print 'pinging server...'
                 t1 = 0
                 t = time.time()
                 socksend(tcp, 'STPING')
@@ -158,8 +165,7 @@ def main():
                 else:
                     print 'ping: not lock'
                 t2 = t1 - t
-                print t2
-                print '%3.2fms' % ((t2-1)*1000)
+                print 'ping: %3.2fms' % ((t2-1)*1000)
             elif msg[:11] == '/fixmessage':
                 new_motd = msg[12:]
                 print 'setting motd to %s' % new_motd
