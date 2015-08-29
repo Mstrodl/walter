@@ -11,6 +11,9 @@ import platform
 import diffie as dh
 import error
 
+if platform.os.name == 'windows':
+    import winsound
+
 from wcr2 import WCR
 
 VERSION = '0.2.2'
