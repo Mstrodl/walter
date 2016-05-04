@@ -21,7 +21,7 @@ Server side after that: the server uses the secret in the key exchange and puts 
  secrets[hash(sock)] = secret
 ```
 
-# Messages
+## Messages
 
 When a client gets an input from user, it uses the XOR cipher and sends that chiphertext, when the server recieves that ciphertext, it applies the XOR cipher again and gets the text from the client, after that it broadcasts the encrypted message to all sockets and it uses the secret from each socket to send it only to that socket.
 ```
@@ -30,13 +30,13 @@ When a client gets an input from user, it uses the XOR cipher and sends that chi
  C(another client): --descrambles it and shows that message to user--
 ```
 
-# /exit
+### /exit
 ```
  A: 1CLOSE
  B: --closes connection and closes the thread related to that client, its that simple--
 ```
 
-# /ping
+### /ping
 ```
  A: STPING
  B: RCVPING [A does not try to descramble this message, thanks to receber_msg()]
