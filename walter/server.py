@@ -19,7 +19,7 @@ motd = 'Good Talking!'
 VERSION = '0.2.3'
 AUTHOR = 'Lukas Mendes'
 BANNER = "Walter Server v%s by %s" % (VERSION, AUTHOR)
-PORT = 39
+PORT = 8243
 BUFSIZE = 4096
 
 sockets = []
