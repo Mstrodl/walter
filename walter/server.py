@@ -16,7 +16,7 @@ motd = 'Good Talking!'
 
 # TODO: detailed logging
 
-VERSION = '0.2.2'
+VERSION = '0.2.3'
 AUTHOR = 'Lukas Mendes'
 BANNER = "Walter Server v%s by %s" % (VERSION, AUTHOR)
 PORT = 39
@@ -168,6 +168,7 @@ def main():
     except KeyboardInterrupt:
         print "CTRL-C was pressed, exiting..."
         for s in sockets:
+            print "exiting %s" % nicks[hash(s)]
             socksend(s, "SVERR")
             del secrets[hash(s)]
             del nicks[hash(s)]
@@ -176,4 +177,3 @@ def main():
 
 if __name__ == '__main__':
     sys.exit(main())
-
