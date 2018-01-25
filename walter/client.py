@@ -17,7 +17,7 @@ if platform.os.name == 'windows':
 from wcr2 import WCR
 
 VERSION = '0.2.3'
-AUTHOR = 'Lukas Mendes'
+AUTHOR = 'Luna Mendes'
 PORT = 8243
 BUFSIZE = 4096
 MSG_MAX = 1024

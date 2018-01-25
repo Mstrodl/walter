@@ -17,7 +17,7 @@ motd = 'Good Talking!'
 # TODO: detailed logging
 
 VERSION = '0.2.3'
-AUTHOR = 'Lukas Mendes'
+AUTHOR = 'Luna Mendes'
 BANNER = "Walter Server v%s by %s" % (VERSION, AUTHOR)
 PORT = 8243
 BUFSIZE = 4096
